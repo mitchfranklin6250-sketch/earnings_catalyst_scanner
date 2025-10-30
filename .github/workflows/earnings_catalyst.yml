@@ -2,12 +2,9 @@ name: Earnings Catalyst Scanner
 
 on:
   schedule:
-    # Run 3 times daily: 6 AM, 12 PM, 6 PM ET (11:00, 17:00, 23:00 UTC)
-    - cron: '0 11 * * *'  # 6 AM ET
-    - cron: '0 17 * * *'  # 12 PM ET  
-    - cron: '0 23 * * *'  # 6 PM ET
-  
-  # Allow manual trigger
+    - cron: '0 11 * * *'
+    - cron: '0 17 * * *'
+    - cron: '0 23 * * *'
   workflow_dispatch:
 
 jobs:
@@ -16,10 +13,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     
@@ -28,15 +25,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install yfinance pandas numpy requests beautifulsoup4 lxml
     
-    - name: Run Earnings Catalyst Scanner
+    - name: Run scanner
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         python earnings_catalyst_scanner.py
-    
-    - name: Upload scan results
-      uses: actions/upload-artifact@v3
-      with:
-        name: scan-results
-        path: scan_results_*.json
-        retention-days: 30
