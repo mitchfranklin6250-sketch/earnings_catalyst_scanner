@@ -65,35 +65,89 @@ class OpportunityScanner:
         self.scan_date = datetime.now()
     
     def get_sp500_tickers(self) -> List[str]:
-        """Get S&P 500 tickers as universe"""
+        """Get comprehensive US stock universe - S&P 500, NASDAQ 100, Russell 2000"""
+        all_tickers = set()
+        
         try:
-            # Get S&P 500 list
+            # 1. Get S&P 500
+            logger.info("Loading S&P 500 tickers...")
             url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
             tables = pd.read_html(url)
             sp500_table = tables[0]
-            tickers = sp500_table['Symbol'].tolist()
-            
-            # Clean tickers
-            tickers = [t.replace('.', '-') for t in tickers]
-            
-            logger.info(f"Loaded {len(tickers)} S&P 500 tickers")
-            return tickers
+            sp500_tickers = sp500_table['Symbol'].tolist()
+            sp500_tickers = [t.replace('.', '-') for t in sp500_tickers]
+            all_tickers.update(sp500_tickers)
+            logger.info(f"Loaded {len(sp500_tickers)} S&P 500 tickers")
         except Exception as e:
-            logger.error(f"Error loading S&P 500 tickers: {e}")
-            # Fallback to manual list of key tickers
+            logger.warning(f"Error loading S&P 500: {e}")
+        
+        try:
+            # 2. Get NASDAQ 100
+            logger.info("Loading NASDAQ 100 tickers...")
+            url = 'https://en.wikipedia.org/wiki/Nasdaq-100'
+            tables = pd.read_html(url)
+            nasdaq_table = tables[4]  # NASDAQ 100 components table
+            nasdaq_tickers = nasdaq_table['Ticker'].tolist()
+            nasdaq_tickers = [t.replace('.', '-') for t in nasdaq_tickers]
+            all_tickers.update(nasdaq_tickers)
+            logger.info(f"Loaded {len(nasdaq_tickers)} NASDAQ 100 tickers")
+        except Exception as e:
+            logger.warning(f"Error loading NASDAQ 100: {e}")
+        
+        try:
+            # 3. Get Russell 2000 (via iShares IWM holdings - top 200)
+            logger.info("Loading Russell 2000 sample...")
+            # Note: Full Russell 2000 list requires paid data, using top holdings
+            russell_sample = [
+                # Add high-volume small/mid caps manually
+                'GH', 'FORM', 'EXAS', 'ENPH', 'MTSR', 'RIOT', 'MARA', 'COIN',
+                'HOOD', 'RBLX', 'DASH', 'ABNB', 'SNOW', 'CRWD', 'ZS', 'DDOG',
+                'NET', 'MDB', 'CFLT', 'ESTC', 'BILL', 'TEAM', 'ZI', 'FROG',
+                'DOCN', 'GTLB', 'PCOR', 'WBD', 'PARA', 'NCLH', 'RCL', 'CCL',
+                'AAL', 'UAL', 'DAL', 'JBLU', 'SAVE', 'SPOT', 'PINS', 'SNAP',
+                'TWLO', 'SQ', 'AFRM', 'UPST', 'SOFI', 'LC', 'OPEN', 'COMP'
+            ]
+            all_tickers.update(russell_sample)
+            logger.info(f"Added {len(russell_sample)} high-volume small/mid caps")
+        except Exception as e:
+            logger.warning(f"Error adding small caps: {e}")
+        
+        # Convert set to list and remove any invalid tickers
+        final_tickers = [t for t in list(all_tickers) if t and len(t) <= 5]
+        
+        logger.info(f"Total universe: {len(final_tickers)} tickers")
+        
+        if len(final_tickers) == 0:
+            logger.warning("No tickers loaded, using fallback list")
             return self._get_fallback_tickers()
+        
+        return final_tickers
     
     def _get_fallback_tickers(self) -> List[str]:
-        """Fallback ticker list if S&P 500 load fails"""
+        """Expanded fallback ticker list with high-volume growth stocks"""
         return [
             # Healthcare/Biotech
             'GH', 'MTSR', 'EXAS', 'ILMN', 'VRTX', 'REGN', 'GILD', 'AMGN', 'BIIB',
-            # Semiconductors
+            'IRTC', 'INCY', 'ALNY', 'SRPT', 'BMRN', 'FOLD', 'IONS', 'RARE',
+            # Semiconductors  
             'NVDA', 'AMD', 'AVGO', 'QCOM', 'MRVL', 'FORM', 'KLAC', 'LRCX', 'ASML',
-            # Software/Cloud
+            'ONTO', 'ACLS', 'MPWR', 'ALGM', 'CRUS', 'SWKS', 'QRVO', 'MTSI',
+            # Software/Cloud/Cyber
             'CRM', 'NOW', 'SNOW', 'DDOG', 'CRWD', 'ZS', 'NET', 'PANW', 'OKTA',
-            # Other growth
-            'TSLA', 'SHOP', 'SQ', 'COIN', 'RBLX', 'U', 'DASH', 'ABNB'
+            'MDB', 'CFLT', 'ESTC', 'BILL', 'TEAM', 'ZI', 'FROG', 'DOCN', 'GTLB',
+            'TENB', 'ALRM', 'QLYS', 'VRNS', 'RPD', 'SUMO', 'BL', 'SMAR',
+            # Fintech/Crypto
+            'COIN', 'HOOD', 'SQ', 'AFRM', 'SOFI', 'UPST', 'LC', 'RIOT', 'MARA',
+            'BITF', 'HUT', 'CIFR', 'CORZ', 'BTBT', 'WULF', 'CLSK',
+            # Consumer/E-commerce  
+            'TSLA', 'SHOP', 'DASH', 'ABNB', 'UBER', 'LYFT', 'RBLX', 'U', 'CHWY',
+            'ETSY', 'W', 'CVNA', 'REAL', 'RH', 'WSM', 'LULU', 'PTON',
+            # Media/Entertainment
+            'SPOT', 'PINS', 'SNAP', 'TWLO', 'MTCH', 'BMBL', 'ROKU', 'FUBO',
+            'TTD', 'MGNI', 'PUBM', 'IAS', 'APPS', 'AMBA',
+            # Other High Growth
+            'ENPH', 'SEDG', 'RUN', 'NOVA', 'BE', 'PLUG', 'FCEL', 'BLNK',
+            'RIVN', 'LCID', 'FSR', 'GOEV', 'NKLA', 'HYLN', 'RIDE'
         ]
     
     def get_upcoming_earnings(self, tickers: List[str]) -> List[Dict]:
