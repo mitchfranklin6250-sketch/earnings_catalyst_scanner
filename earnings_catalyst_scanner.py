@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # Configuration
 DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
 MIN_MARKET_CAP = 250_000_000  # $250M - lowered to catch smaller movers
-MAX_MARKET_CAP = 50_000_000_000  # $50B
+MAX_MARKET_CAP = 999_000_000_000  # Essentially no Limit
 MIN_AVG_VOLUME = 100_000  # Lower for small caps
 LOOKBACK_DAYS = 14  # Scan earnings in next 14 days
 
